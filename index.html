@@ -5,52 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VOO Tracker</title>
     <style>
-        body { font-family: 'Comic Sans MS', cursive, sans-serif; background-color: #f0f9ff; text-align: center; padding-top: 50px; transition: 0.5s; }
-        .container { background: white; border-radius: 50px; padding: 40px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        #status-icon { font-size: 150px; display: block; margin: 20px auto; }
-        #price-display { font-size: 80px; font-weight: bold; color: #333; }
-        h1 { color: #555; font-size: 40px; }
+        :root {
+            --up-color: #00d084; /* 綠色 */
+            --down-color: #ff4d4d; /* 紅色 */
+        }
+        body { 
+            font-family: 'Comic Sans MS', cursive, sans-serif; 
+            background-color: #f0f9ff; 
+            text-align: center; 
+            padding-top: 50px; 
+            transition: background-color 1s ease;
+        }
+        .container { 
+            background: white; 
+            border-radius: 50px; 
+            padding: 40px; 
+            display: inline-block; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            min-width: 350px;
+        }
+        h1 { color: #333; font-size: 48px; margin-bottom: 5px; }
+        .subtitle { font-size: 18px; color: #888; margin-bottom: 20px; }
+        
+        #status-icon { font-size: 120px; display: block; margin: 10px auto; transition: transform 0.3s; }
+        
+        #price-display { 
+            font-size: 80px; 
+            font-weight: bold; 
+            color: #222; 
+            display: block;
+        }
+
+        /* 漲跌幅數據樣式 */
+        #change-display {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .up { color: var(--up-color); }
+        .down { color: var(--down-color); }
+
+        /* 動畫特效 */
+        .up-flash { animation: pulse-green 0.8s; }
+        .down-flash { animation: pulse-red 0.8s; }
+
+        @keyframes pulse-green {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(0,208,132,0.5); }
+            100% { transform: scale(1); }
+        }
+        @keyframes pulse-red {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); text-shadow: 0 0 15px rgba(255,77,77,0.5); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 VOO 超級籃子 🚀</h1>
+        <h1>VOO tracker</h1>
+        <div class="subtitle">(S&P500, Top 500 companies)</div>
+        
         <div id="status-icon">⏳</div>
-        <div id="price-display">載入中...</div>
-        <p style="font-size: 20px; color: #888;">(這是美國最強的 500 家公司喔！)</p>
-    </div>
-
-    <script>
-        // 你剛才申請的 API KEY 已經包含在下面了
-        const API_KEY = 'd6ca1e9r01qsiik1clhgd6ca1e9r01qsiik1cli0'; 
-        const symbol = 'VOO';
-
-        async function updatePrice() {
-            try {
-                const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`);
-                const data = await response.json();
-                const currentPrice = data.c; // 現在價格
-                const prevPrice = data.pc;    // 昨日收盤價
-                
-                const display = document.getElementById('price-display');
-                const icon = document.getElementById('status-icon');
-
-                display.innerText = `$${currentPrice.toFixed(2)}`;
-
-                if (currentPrice >= prevPrice) {
-                    icon.innerText = "🚀";
-                    document.body.style.backgroundColor = "#e6fffa"; // 漲了變綠色背景
-                } else {
-                    icon.innerText = "🎈";
-                    document.body.style.backgroundColor = "#fff5f5"; // 跌了變紅色背景
-                }
-            } catch (error) {
-                console.error("讀取失敗", error);
-            }
-        }
-
-        setInterval(updatePrice, 10000); // 每 10 秒更新一次
-        updatePrice();
-    </script>
-</body>
-</html>
+        <div id="price-display">$---.--</div>
+        
+        <div
