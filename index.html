@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VOO Cat Tracker - Smart Input Pro</title>
+    <title>VOO Cat Tracker - Clean UI Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
@@ -27,17 +27,17 @@
             position: relative; box-sizing: border-box;
         }
 
-        /* 標題置中 + 按鈕靠右 */
+        /* 標題絕對置中 + 按鈕絕對靠右 */
         .header-controls { 
             display: flex; align-items: center; justify-content: center; 
-            position: relative; height: 40px; margin-bottom: 5px;
+            position: relative; height: 40px; margin-bottom: 5px; 
         }
         .title-top { 
             position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
             font-size: 10px; color: #888; font-weight: 800; 
             letter-spacing: 1.2px; text-transform: uppercase; white-space: nowrap;
         }
-        #auth-container { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+        #auth-container { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; }
 
         .ctrl-btn {
             background: #f5f5f5; border: none; border-radius: 10px;
@@ -66,15 +66,8 @@
         .port-label { font-size: 9px; color: #888; font-weight: 700; margin-bottom: 3px; text-align: left; }
         .port-val { font-size: 13px; font-weight: 800; text-align: left; }
 
-        /* 可滑動紀錄區域 */
-        #tx-list-container { 
-            max-height: 180px; overflow-y: auto; margin-top: 10px; 
-            padding-right: 5px; scrollbar-width: thin;
-        }
-
-        #holdings-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 20px; text-align: left; font-size: 9px; }
-        .hold-item { display: flex; align-items: center; gap: 6px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        /* 紀錄清單：可滑動區域 */
+        #tx-list-container { max-height: 180px; overflow-y: auto; margin-top: 10px; padding-right: 5px; scrollbar-width: thin; }
 
         #success-popup {
             display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -94,7 +87,7 @@
 </head>
 <body>
 
-    <div id="success-popup">Welcome back! All systems ready.</div>
+    <div id="success-popup">Sync active. Data integrity secured.</div>
 
     <div class="card">
         <div class="header-controls">
@@ -129,7 +122,7 @@
         
         <div id="portfolio-logged-in" style="display:none; text-align:left;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <span class="section-title" style="font-size:13px; font-weight:800;">Portfolio Tracking</span>
+                <span class="section-title" style="font-size:13px; font-weight:800; margin:0">Portfolio Tracking</span>
                 <button class="ctrl-btn" onclick="toggleModal()" style="background:#000; color:#fff;">+ Add Record</button>
             </div>
             <div class="summary-grid">
@@ -141,27 +134,21 @@
     </div>
 
     <div class="card">
-        <div class="header-controls" style="justify-content: space-between;">
-            <div class="section-title" style="margin:0; font-size:13px; font-weight:800;">Performance <span id="api-status" style="font-size:9px; color:#bbb; font-weight:normal;"></span></div>
-            <select id="timeframe" onchange="getVOOHistory()" style="border:none; background:#f5f5f5; border-radius:8px; padding:2px 6px; font-weight:700; font-size:11px;">
-                <option value="1">1D</option>
-                <option value="5" selected>5D</option>
-                <option value="30">1M</option>
-                <option value="365">1Y</option>
-            </select>
+        <div class="header-controls" style="justify-content: flex-start;">
+            <div class="section-title" style="margin:0; font-size:13px; font-weight:800;">Price Trend <span id="api-status" style="font-size:9px; color:#bbb; font-weight:normal;">Simulated</span></div>
         </div>
         <div style="height: 180px; margin-top: 15px;"><canvas id="trendChart"></canvas></div>
     </div>
 
     <div class="card">
-        <div class="section-title" style="font-size:13px; font-weight:800;">Top 20 Holdings</div>
+        <div class="section-title" style="font-size:13px; font-weight:800; margin-bottom:12px;">Top 20 Holdings</div>
         <div style="width: 130px; margin: 0 auto;"><canvas id="holdingsChart"></canvas></div>
-        <div id="holdings-list"></div>
+        <div id="holdings-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 15px; text-align: left; font-size: 9px;"></div>
     </div>
 
     <div id="input-modal">
         <div class="modal-box">
-            <h3 style="margin:0 0 20px 0; font-size:16px;">New Investment</h3>
+            <h3 style="margin:0 0 20px 0; font-size:16px;">New Purchase</h3>
             <div style="background:#f9f9f9; padding:18px; border-radius:20px; margin-bottom:15px;">
                 <label style="font-size:10px; font-weight:800;">DATE</label>
                 <input type="date" id="tx-date" style="width:100%; margin:4px 0 10px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
@@ -172,10 +159,10 @@
                 <label style="font-size:10px; font-weight:800;">TOTAL INVESTMENT ($)</label>
                 <input type="number" id="tx-total-amt" placeholder="1000.00" style="width:100%; margin:4px 0 14px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
                 
-                <button onclick="addTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Calculate & Save</button>
+                <button id="save-tx-btn" onclick="addTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Auto-calc & Save</button>
             </div>
             <div id="tx-list-container"></div>
-            <button onclick="toggleModal()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:12px;">Cancel</button>
+            <button onclick="toggleModal()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:12px;">Close</button>
         </div>
     </div>
 
@@ -183,6 +170,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // 已填入真實配置
         const firebaseConfig = {
             apiKey: "AIzaSyBG0O6iJMyWTHiQ6yBZlzFEwxnZXl39vow",
             authDomain: "voo-tracker-8a51a.firebaseapp.com",
@@ -197,26 +185,25 @@
         const db = getDatabase(app);
         const API_KEY = 'd6ca1e9r01qsiik1clhgd6ca1e9r01qsiik1cli0'; 
         const symbol = 'VOO';
-        let lastPrice = 0, trendChart, transactions = [], currentUserId = null;
+        let lastPrice = 0, trendChart = null, transactions = [], currentUserId = null, isDataReady = false;
 
-        // 持久化登入
+        // 持久化登入恢復
         window.onload = () => {
-            const saved = localStorage.getItem('voo_persistent_id');
-            if (saved) { currentUserId = saved; showLoginUI(); syncData(); }
+            const saved = localStorage.getItem('voo_user_persistence_id');
+            if (saved) { currentUserId = saved; showLoginUI(); connectFirebase(); }
             initApp();
         };
 
         window.handleAuthClick = () => {
-            if (currentUserId) { 
-                if(confirm("Logout?")) { localStorage.removeItem('voo_persistent_id'); location.reload(); }
-            } else { google.accounts.id.prompt(); }
+            if (currentUserId) { if(confirm("Logout?")) { localStorage.removeItem('voo_user_persistence_id'); location.reload(); } }
+            else { google.accounts.id.prompt(); }
         };
 
         window.handleCredentialResponse = (response) => {
             const payload = JSON.parse(window.atob(response.credential.split('.')[1]));
             currentUserId = payload.sub;
-            localStorage.setItem('voo_persistent_id', currentUserId);
-            showLoginUI(); syncData();
+            localStorage.setItem('voo_user_persistence_id', currentUserId);
+            showLoginUI(); connectFirebase();
         };
 
         function showLoginUI() {
@@ -225,49 +212,50 @@
             document.getElementById("portfolio-logged-in").style.display = "block";
         }
 
-        function syncData() {
+        function connectFirebase() {
+            // 重要：持續同步雲端數據，確保新增時不會覆蓋
             onValue(ref(db, 'users/' + currentUserId + '/transactions'), (snap) => {
                 transactions = snap.val() || [];
+                isDataReady = true;
                 renderTxList(); calculatePortfolio();
             });
         }
 
-        window.saveAndRefresh = () => {
+        function showPopup(msg) {
+            const p = document.getElementById("success-popup");
+            p.innerText = msg; p.style.display = "block";
+            setTimeout(() => { p.style.opacity = "0"; setTimeout(() => p.style.display="none", 500); }, 3000);
+        }
+
+        window.addTransaction = () => {
+            if (!isDataReady) { alert("Syncing data, please wait..."); return; }
+            const d = document.getElementById('tx-date').value, p = parseFloat(document.getElementById('tx-price').value), amt = parseFloat(document.getElementById('tx-total-amt').value);
+            if(!d || isNaN(p) || isNaN(amt)) return;
+
+            // 修正：將新資料推入現有陣列，避免覆蓋舊資料
+            const newEntry = { id: Date.now(), date: d, price: p, shares: amt / p };
+            transactions.push(newEntry);
+            
             if (currentUserId) set(ref(db, 'users/' + currentUserId + '/transactions'), transactions);
             renderTxList(); calculatePortfolio();
         };
 
-        window.addTransaction = () => {
-            const d = document.getElementById('tx-date').value;
-            const p = parseFloat(document.getElementById('tx-price').value);
-            const total = parseFloat(document.getElementById('tx-total-amt').value);
-            
-            if(!d || isNaN(p) || isNaN(total)) return;
-            
-            // 智慧換算：股數 = 投資額 / 單價
-            const s = total / p;
-            transactions.push({ id: Date.now(), date: d, price: p, shares: s });
-            window.saveAndRefresh();
+        window.deleteTx = (id) => { 
+            if(confirm("Delete this record?")) { 
+                transactions = transactions.filter(t => t.id !== id); 
+                if (currentUserId) set(ref(db, 'users/' + currentUserId + '/transactions'), transactions);
+                renderTxList(); calculatePortfolio();
+            } 
         };
-
-        window.deleteTx = (id) => { if(confirm("Delete?")) { transactions = transactions.filter(t => t.id !== id); window.saveAndRefresh(); } };
 
         function renderTxList() {
             const container = document.getElementById('tx-list-container');
-            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">HISTORY (Latest Top)</div>';
-            
-            // 最新排最上
+            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">PURCHASE HISTORY (Latest Top)</div>';
             [...transactions].sort((a,b) => b.id - a.id).forEach(t => {
                 const total = (t.shares * t.price).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:10px; padding:10px; background:#f9f9f9; border-radius:12px;">
-                <div style="text-align:left;">
-                    <b style="color:#000;">$${total}</b><br>
-                    <small style="color:#888;">${t.shares.toFixed(3)} shares @ $${t.price}</small>
-                </div>
-                <div style="text-align:right;">
-                    <small style="color:#bbb;">${t.date}</small><br>
-                    <span onclick="deleteTx(${t.id})" style="color:#ff3b30; cursor:pointer; font-size:10px; font-weight:800;">DEL</span>
-                </div></div>`;
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:10px; padding:12px; background:#f9f9f9; border-radius:15px; text-align:left;">
+                <div style="flex:1;"><b style="color:#000; font-size:13px;">$${total}</b><br><small style="color:#888;">${t.shares.toFixed(3)} shares @ $${t.price}</small></div>
+                <div style="text-align:right;"><small style="color:#bbb; font-weight:700;">${t.date}</small><br><span onclick="deleteTx(${t.id})" style="color:#ff3b30; cursor:pointer; font-weight:800; font-size:10px;">DELETE</span></div></div>`;
             });
         }
 
@@ -285,46 +273,58 @@
         }
 
         async function getVOOHistory() {
-            const tf = document.getElementById('timeframe').value;
+            // 固定顯示 5D
             const to = Math.floor(Date.now() / 1000);
-            let from = to - (parseInt(tf) * 86400 * 3.5); 
-            let res = (tf == '1') ? '15' : (tf == '5' ? '60' : 'D');
+            let from = to - (5 * 86400 * 3); 
+            let res = '60';
+            
             try {
                 const response = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${res}&from=${from}&to=${to}&token=${API_KEY}`);
                 const data = await response.json();
                 if (data.s === "ok" && data.c && data.c.length > 0) {
                     document.getElementById('api-status').innerText = "Live";
-                    const count = tf == '1' ? 26 : (tf == '5' ? 40 : data.c.length);
-                    const labels = data.t.slice(-count).map(ts => {
+                    const labels = data.t.slice(-40).map(ts => {
                         const d = new Date(ts * 1000);
-                        return tf === '1' ? `${d.getHours()}:00` : `${d.getMonth()+1}/${d.getDate()}`;
+                        return `${d.getMonth()+1}/${d.getDate()}`; // M/D 格式
                     });
-                    updateTrendUI(data.c.slice(-count), labels);
+                    renderTrendChart(data.c.slice(-40), labels);
                 } else { throw new Error(); }
             } catch (e) {
-                // 修復：週末也正確生成日期 (2/22)
-                document.getElementById('api-status').innerText = "Market Closed";
+                document.getElementById('api-status').innerText = "Simulated";
                 const base = lastPrice || 634, prices = [], labels = [];
                 const now = new Date();
                 for(let i=7; i>=0; i--) {
                     const d = new Date(); d.setDate(now.getDate() - i);
                     labels.push(`${d.getMonth()+1}/${d.getDate()}`);
-                    prices.push(base - (Math.random()*12 - 6));
+                    prices.push(base - (Math.random()*15 - 7.5));
                 }
-                updateTrendUI(prices, labels);
+                renderTrendChart(prices, labels);
             }
         }
 
-        function updateTrendUI(prices, labels) {
-            if(!trendChart) return;
-            trendChart.data.labels = labels;
-            trendChart.data.datasets[0].data = prices;
-            const isUp = prices[prices.length - 1] >= prices[0];
-            trendChart.data.datasets[0].borderColor = isUp ? '#00c805' : '#ff3b30';
-            trendChart.data.datasets[0].backgroundColor = isUp ? 'rgba(0, 200, 5, 0.05)' : 'rgba(255, 59, 48, 0.05)';
-            trendChart.options.scales.y.min = Math.min(...prices) * 0.998;
-            trendChart.options.scales.y.max = Math.max(...prices) * 1.002;
-            trendChart.update('none');
+        function renderTrendChart(prices, labels) {
+            if (trendChart) trendChart.destroy(); // 強制銷毀舊圖表
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const isUp = prices[prices.length-1] >= prices[0];
+            trendChart = new Chart(ctx, { 
+                type: 'line', 
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        data: prices, borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2, tension: 0.2, fill: true,
+                        borderColor: isUp ? '#00c805' : '#ff3b30',
+                        backgroundColor: isUp ? 'rgba(0, 200, 5, 0.05)' : 'rgba(255, 59, 48, 0.05)'
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { display: true, ticks: { color: '#bbb', font: { size: 9, weight: '600' } }, grid: { display: false } }, 
+                        y: { display: true, position: 'right', ticks: { color: '#000', font: { weight: '800', size: 10 } }, min: Math.min(...prices)*0.995, max: Math.max(...prices)*1.005 } 
+                    } 
+                } 
+            });
         }
 
         async function updatePrice() {
@@ -335,10 +335,6 @@
                 lastPrice = data.c;
                 updateOdometer(data.c.toFixed(2));
                 calculatePortfolio();
-                if (trendChart && trendChart.data.datasets[0].data.length > 0) {
-                    trendChart.data.datasets[0].data[trendChart.data.datasets[0].data.length - 1] = lastPrice;
-                    trendChart.update('none'); 
-                }
                 const isUp = data.d >= 0;
                 document.getElementById('cat-container').innerHTML = `<svg viewBox="0 0 100 100" width="100%" height="100%"><text x="50" y="30" font-size="30" text-anchor="middle" fill="${isUp?'#00c805':'#ff3b30'}" font-weight="bold">${isUp?'▲':'▼'}</text><text x="50" y="75" font-size="50" text-anchor="middle">${isUp?'😺':'😿'}</text></svg>`;
                 document.body.style.backgroundColor = isUp ? "#f2faf5" : "#fef2f2";
@@ -372,19 +368,6 @@
             const top20 = { labels: ["NVIDIA", "Apple", "Microsoft", "Amazon", "Alphabet A", "Alphabet C", "Meta", "Broadcom", "Tesla", "Berkshire", "Walmart", "Eli Lilly", "JPMorgan", "ExxonMobil", "Visa", "J&J", "Micron", "Mastercard", "Oracle", "Costco"], values: [7.32, 6.14, 4.72, 3.60, 3.11, 2.91, 2.65, 2.55, 2.46, 1.71, 1.57, 1.52, 1.34, 1.00, 0.99, 0.93, 0.76, 0.75, 0.70, 0.70] };
             new Chart(document.getElementById('holdingsChart').getContext('2d'), { type: 'doughnut', data: { labels: top20.labels, datasets: [{ data: top20.values, backgroundColor: colors, borderWidth: 1, borderColor: '#fff' }] }, options: { cutout: '70%', plugins: { legend: { display: false } } } });
             top20.labels.forEach((l, i) => document.getElementById('holdings-list').innerHTML += `<div class="hold-item"><div class="dot" style="background:${colors[i]}"></div><div style="flex:1;">${l} <b style="float:right">${top20.values[i]}%</b></div></div>`);
-
-            trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), { 
-                type: 'line', 
-                data: { labels: [], datasets: [{ data: [], borderWidth: 3, pointRadius: 0, tension: 0.2, fill: true }] }, 
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } }, 
-                    scales: { 
-                        x: { display: true, ticks: { color: '#bbb', font: { size: 9, weight: '600' } }, grid: { display: false } }, 
-                        y: { display: true, position: 'right', ticks: { color: '#000', font: { weight: '800', size: 10 } } } 
-                    } 
-                } 
-            });
             updatePrice(); setInterval(updatePrice, 15000); getVOOHistory();
         }
     </script>
