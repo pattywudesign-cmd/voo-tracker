@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VOO Tracker</title>
+    <title>VOO Cat Tracker - Smart Input Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
@@ -66,9 +66,9 @@
         .port-label { font-size: 9px; color: #888; font-weight: 700; margin-bottom: 3px; text-align: left; }
         .port-val { font-size: 13px; font-weight: 800; text-align: left; }
 
-        /* 紀錄清單：可滑動區域 */
+        /* 可滑動紀錄區域 */
         #tx-list-container { 
-            max-height: 140px; overflow-y: auto; margin-top: 10px; 
+            max-height: 180px; overflow-y: auto; margin-top: 10px; 
             padding-right: 5px; scrollbar-width: thin;
         }
 
@@ -94,7 +94,7 @@
 </head>
 <body>
 
-    <div id="success-popup">Login successful! Sync active.</div>
+    <div id="success-popup">Welcome back! All systems ready.</div>
 
     <div class="card">
         <div class="header-controls">
@@ -161,18 +161,21 @@
 
     <div id="input-modal">
         <div class="modal-box">
-            <h3 style="margin:0 0 20px 0; font-size:16px;">Portfolio History</h3>
+            <h3 style="margin:0 0 20px 0; font-size:16px;">New Investment</h3>
             <div style="background:#f9f9f9; padding:18px; border-radius:20px; margin-bottom:15px;">
                 <label style="font-size:10px; font-weight:800;">DATE</label>
                 <input type="date" id="tx-date" style="width:100%; margin:4px 0 10px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
-                <label style="font-size:10px; font-weight:800;">PRICE ($)</label>
+                
+                <label style="font-size:10px; font-weight:800;">PRICE PER SHARE ($)</label>
                 <input type="number" id="tx-price" placeholder="634.02" style="width:100%; margin:4px 0 10px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
-                <label style="font-size:10px; font-weight:800;">SHARES</label>
-                <input type="number" id="tx-shares" placeholder="10" style="width:100%; margin:4px 0 14px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
-                <button onclick="addTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Save Record</button>
+                
+                <label style="font-size:10px; font-weight:800;">TOTAL INVESTMENT ($)</label>
+                <input type="number" id="tx-total-amt" placeholder="1000.00" style="width:100%; margin:4px 0 14px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
+                
+                <button onclick="addTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Calculate & Save</button>
             </div>
             <div id="tx-list-container"></div>
-            <button onclick="toggleModal()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:12px;">Close</button>
+            <button onclick="toggleModal()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:12px;">Cancel</button>
         </div>
     </div>
 
@@ -196,25 +199,24 @@
         const symbol = 'VOO';
         let lastPrice = 0, trendChart, transactions = [], currentUserId = null;
 
+        // 持久化登入
         window.onload = () => {
-            const saved = localStorage.getItem('voo_auth_user');
+            const saved = localStorage.getItem('voo_persistent_id');
             if (saved) { currentUserId = saved; showLoginUI(); syncData(); }
             initApp();
         };
 
         window.handleAuthClick = () => {
             if (currentUserId) { 
-                if(confirm("Logout?")) { localStorage.removeItem('voo_auth_user'); location.reload(); }
+                if(confirm("Logout?")) { localStorage.removeItem('voo_persistent_id'); location.reload(); }
             } else { google.accounts.id.prompt(); }
         };
 
         window.handleCredentialResponse = (response) => {
             const payload = JSON.parse(window.atob(response.credential.split('.')[1]));
             currentUserId = payload.sub;
-            localStorage.setItem('voo_auth_user', currentUserId);
-            showLoginUI();
-            showPopup("Login successful! Sync active.");
-            syncData();
+            localStorage.setItem('voo_persistent_id', currentUserId);
+            showLoginUI(); syncData();
         };
 
         function showLoginUI() {
@@ -230,35 +232,42 @@
             });
         }
 
-        function showPopup(msg) {
-            const p = document.getElementById("success-popup");
-            p.innerText = msg; p.style.display = "block";
-            setTimeout(() => { p.style.opacity = "0"; setTimeout(() => p.style.display="none", 500); }, 3000);
-        }
-
         window.saveAndRefresh = () => {
             if (currentUserId) set(ref(db, 'users/' + currentUserId + '/transactions'), transactions);
             renderTxList(); calculatePortfolio();
         };
 
         window.addTransaction = () => {
-            const d = document.getElementById('tx-date').value, p = parseFloat(document.getElementById('tx-price').value), s = parseFloat(document.getElementById('tx-shares').value);
-            if(!d || isNaN(p) || isNaN(s)) return;
-            // 存入紀錄 (最新紀錄 id 最大)
+            const d = document.getElementById('tx-date').value;
+            const p = parseFloat(document.getElementById('tx-price').value);
+            const total = parseFloat(document.getElementById('tx-total-amt').value);
+            
+            if(!d || isNaN(p) || isNaN(total)) return;
+            
+            // 智慧換算：股數 = 投資額 / 單價
+            const s = total / p;
             transactions.push({ id: Date.now(), date: d, price: p, shares: s });
             window.saveAndRefresh();
         };
 
-        window.deleteTx = (id) => { if(confirm("Delete record?")) { transactions = transactions.filter(t => t.id !== id); window.saveAndRefresh(); } };
+        window.deleteTx = (id) => { if(confirm("Delete?")) { transactions = transactions.filter(t => t.id !== id); window.saveAndRefresh(); } };
 
         function renderTxList() {
             const container = document.getElementById('tx-list-container');
-            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">LATEST RECORDS FIRST</div>';
-            // 重要：最新排最上
+            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">HISTORY (Latest Top)</div>';
+            
+            // 最新排最上
             [...transactions].sort((a,b) => b.id - a.id).forEach(t => {
+                const total = (t.shares * t.price).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
                 container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:10px; padding:10px; background:#f9f9f9; border-radius:12px;">
-                <div><b>${t.shares} shares @ $${t.price}</b><br><small style="color:#bbb;">${t.date}</small></div>
-                <span onclick="deleteTx(${t.id})" style="color:#ff3b30; cursor:pointer; font-weight:800; padding:4px;">✕</span></div>`;
+                <div style="text-align:left;">
+                    <b style="color:#000;">$${total}</b><br>
+                    <small style="color:#888;">${t.shares.toFixed(3)} shares @ $${t.price}</small>
+                </div>
+                <div style="text-align:right;">
+                    <small style="color:#bbb;">${t.date}</small><br>
+                    <span onclick="deleteTx(${t.id})" style="color:#ff3b30; cursor:pointer; font-size:10px; font-weight:800;">DEL</span>
+                </div></div>`;
             });
         }
 
@@ -280,23 +289,20 @@
             const to = Math.floor(Date.now() / 1000);
             let from = to - (parseInt(tf) * 86400 * 3.5); 
             let res = (tf == '1') ? '15' : (tf == '5' ? '60' : 'D');
-            
             try {
                 const response = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${res}&from=${from}&to=${to}&token=${API_KEY}`);
                 const data = await response.json();
-                
                 if (data.s === "ok" && data.c && data.c.length > 0) {
                     document.getElementById('api-status').innerText = "Live";
                     const count = tf == '1' ? 26 : (tf == '5' ? 40 : data.c.length);
-                    const prices = data.c.slice(-count);
                     const labels = data.t.slice(-count).map(ts => {
                         const d = new Date(ts * 1000);
-                        return tf === '1' ? `${d.getHours()}:00` : `${d.getMonth()+1}/${d.getDate()}`; // 顯示 2/22 格式
+                        return tf === '1' ? `${d.getHours()}:00` : `${d.getMonth()+1}/${d.getDate()}`;
                     });
-                    updateTrendUI(prices, labels);
+                    updateTrendUI(data.c.slice(-count), labels);
                 } else { throw new Error(); }
             } catch (e) {
-                // 修復：週末模擬模式也要產生正確的日期標籤
+                // 修復：週末也正確生成日期 (2/22)
                 document.getElementById('api-status').innerText = "Market Closed";
                 const base = lastPrice || 634, prices = [], labels = [];
                 const now = new Date();
@@ -311,7 +317,6 @@
 
         function updateTrendUI(prices, labels) {
             if(!trendChart) return;
-            // 重要：徹底刷新數據
             trendChart.data.labels = labels;
             trendChart.data.datasets[0].data = prices;
             const isUp = prices[prices.length - 1] >= prices[0];
@@ -319,7 +324,7 @@
             trendChart.data.datasets[0].backgroundColor = isUp ? 'rgba(0, 200, 5, 0.05)' : 'rgba(255, 59, 48, 0.05)';
             trendChart.options.scales.y.min = Math.min(...prices) * 0.998;
             trendChart.options.scales.y.max = Math.max(...prices) * 1.002;
-            trendChart.update('none'); // 強制渲染
+            trendChart.update('none');
         }
 
         async function updatePrice() {
@@ -330,7 +335,6 @@
                 lastPrice = data.c;
                 updateOdometer(data.c.toFixed(2));
                 calculatePortfolio();
-                // 實時連動圖表最後一個點
                 if (trendChart && trendChart.data.datasets[0].data.length > 0) {
                     trendChart.data.datasets[0].data[trendChart.data.datasets[0].data.length - 1] = lastPrice;
                     trendChart.update('none'); 
@@ -364,13 +368,11 @@
         };
 
         function initApp() {
-            // 初始化 Top 20 Holdings
             const colors = ['#84a59d', '#a8dadc', '#9eb3c2', '#b7b7a4', '#ddbea9', '#cb997e', '#b5838d', '#e5989b', '#ffb5a7', '#fcd5ce', '#f8ad9d', '#f4978e', '#bc4749', '#6b705c', '#a5a58d', '#b7b7a4', '#ffe8d6', '#ddbea9', '#cb997e', '#9b2226'];
             const top20 = { labels: ["NVIDIA", "Apple", "Microsoft", "Amazon", "Alphabet A", "Alphabet C", "Meta", "Broadcom", "Tesla", "Berkshire", "Walmart", "Eli Lilly", "JPMorgan", "ExxonMobil", "Visa", "J&J", "Micron", "Mastercard", "Oracle", "Costco"], values: [7.32, 6.14, 4.72, 3.60, 3.11, 2.91, 2.65, 2.55, 2.46, 1.71, 1.57, 1.52, 1.34, 1.00, 0.99, 0.93, 0.76, 0.75, 0.70, 0.70] };
             new Chart(document.getElementById('holdingsChart').getContext('2d'), { type: 'doughnut', data: { labels: top20.labels, datasets: [{ data: top20.values, backgroundColor: colors, borderWidth: 1, borderColor: '#fff' }] }, options: { cutout: '70%', plugins: { legend: { display: false } } } });
             top20.labels.forEach((l, i) => document.getElementById('holdings-list').innerHTML += `<div class="hold-item"><div class="dot" style="background:${colors[i]}"></div><div style="flex:1;">${l} <b style="float:right">${top20.values[i]}%</b></div></div>`);
 
-            // 初始化 Performance Chart
             trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), { 
                 type: 'line', 
                 data: { labels: [], datasets: [{ data: [], borderWidth: 3, pointRadius: 0, tension: 0.2, fill: true }] }, 
