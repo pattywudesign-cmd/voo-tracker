@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VOO Cat Tracker - Clean UI Edition</title>
+    <title>VOO Cat Tracker - Edit & Sync Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
@@ -27,7 +27,7 @@
             position: relative; box-sizing: border-box;
         }
 
-        /* 標題絕對置中 + 按鈕絕對靠右 */
+        /* 標題置中 + 按鈕靠右 */
         .header-controls { 
             display: flex; align-items: center; justify-content: center; 
             position: relative; height: 40px; margin-bottom: 5px; 
@@ -66,7 +66,7 @@
         .port-label { font-size: 9px; color: #888; font-weight: 700; margin-bottom: 3px; text-align: left; }
         .port-val { font-size: 13px; font-weight: 800; text-align: left; }
 
-        /* 紀錄清單：可滑動區域 */
+        /* 紀錄清單：最新在上 + 可滑動區域 */
         #tx-list-container { max-height: 180px; overflow-y: auto; margin-top: 10px; padding-right: 5px; scrollbar-width: thin; }
 
         #success-popup {
@@ -87,7 +87,7 @@
 </head>
 <body>
 
-    <div id="success-popup">Sync active. Data integrity secured.</div>
+    <div id="success-popup">Sync complete. Data secured.</div>
 
     <div class="card">
         <div class="header-controls">
@@ -148,7 +148,7 @@
 
     <div id="input-modal">
         <div class="modal-box">
-            <h3 style="margin:0 0 20px 0; font-size:16px;">New Purchase</h3>
+            <h3 id="modal-title" style="margin:0 0 20px 0; font-size:16px;">New Purchase</h3>
             <div style="background:#f9f9f9; padding:18px; border-radius:20px; margin-bottom:15px;">
                 <label style="font-size:10px; font-weight:800;">DATE</label>
                 <input type="date" id="tx-date" style="width:100%; margin:4px 0 10px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
@@ -159,7 +159,7 @@
                 <label style="font-size:10px; font-weight:800;">TOTAL INVESTMENT ($)</label>
                 <input type="number" id="tx-total-amt" placeholder="1000.00" style="width:100%; margin:4px 0 14px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
                 
-                <button id="save-tx-btn" onclick="addTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Auto-calc & Save</button>
+                <button id="save-tx-btn" onclick="saveTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Save Record</button>
             </div>
             <div id="tx-list-container"></div>
             <button onclick="toggleModal()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:12px;">Close</button>
@@ -170,7 +170,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // 已填入真實配置
         const firebaseConfig = {
             apiKey: "AIzaSyBG0O6iJMyWTHiQ6yBZlzFEwxnZXl39vow",
             authDomain: "voo-tracker-8a51a.firebaseapp.com",
@@ -185,9 +184,8 @@
         const db = getDatabase(app);
         const API_KEY = 'd6ca1e9r01qsiik1clhgd6ca1e9r01qsiik1cli0'; 
         const symbol = 'VOO';
-        let lastPrice = 0, trendChart = null, transactions = [], currentUserId = null, isDataReady = false;
+        let lastPrice = 0, trendChart = null, transactions = [], currentUserId = null, isDataReady = false, editingTxId = null;
 
-        // 持久化登入恢復
         window.onload = () => {
             const saved = localStorage.getItem('voo_user_persistence_id');
             if (saved) { currentUserId = saved; showLoginUI(); connectFirebase(); }
@@ -213,7 +211,6 @@
         }
 
         function connectFirebase() {
-            // 重要：持續同步雲端數據，確保新增時不會覆蓋
             onValue(ref(db, 'users/' + currentUserId + '/transactions'), (snap) => {
                 transactions = snap.val() || [];
                 isDataReady = true;
@@ -221,41 +218,61 @@
             });
         }
 
-        function showPopup(msg) {
-            const p = document.getElementById("success-popup");
-            p.innerText = msg; p.style.display = "block";
-            setTimeout(() => { p.style.opacity = "0"; setTimeout(() => p.style.display="none", 500); }, 3000);
-        }
-
-        window.addTransaction = () => {
-            if (!isDataReady) { alert("Syncing data, please wait..."); return; }
+        // 智慧編輯與儲存邏輯
+        window.saveTransaction = () => {
+            if (!isDataReady) { alert("Syncing data..."); return; }
             const d = document.getElementById('tx-date').value, p = parseFloat(document.getElementById('tx-price').value), amt = parseFloat(document.getElementById('tx-total-amt').value);
             if(!d || isNaN(p) || isNaN(amt)) return;
 
-            // 修正：將新資料推入現有陣列，避免覆蓋舊資料
-            const newEntry = { id: Date.now(), date: d, price: p, shares: amt / p };
-            transactions.push(newEntry);
+            const entryData = { id: editingTxId || Date.now(), date: d, price: p, shares: amt / p };
+
+            if (editingTxId) {
+                // 更新模式
+                transactions = transactions.map(t => t.id === editingTxId ? entryData : t);
+            } else {
+                // 新增模式
+                transactions.push(entryData);
+            }
             
             if (currentUserId) set(ref(db, 'users/' + currentUserId + '/transactions'), transactions);
+            toggleModal(); // 存完關閉
             renderTxList(); calculatePortfolio();
+        };
+
+        window.editTx = (id) => {
+            const tx = transactions.find(t => t.id === id);
+            if (!tx) return;
+            editingTxId = id;
+            document.getElementById('modal-title').innerText = "Edit Record";
+            document.getElementById('save-tx-btn').innerText = "Update Record";
+            document.getElementById('tx-date').value = tx.date;
+            document.getElementById('tx-price').value = tx.price;
+            document.getElementById('tx-total-amt').value = (tx.price * tx.shares).toFixed(2);
+            // 由於 toggleModal 會檢查當前是否開啟，我們直接設定狀態
+            document.getElementById('input-modal').style.display = 'flex';
         };
 
         window.deleteTx = (id) => { 
             if(confirm("Delete this record?")) { 
                 transactions = transactions.filter(t => t.id !== id); 
                 if (currentUserId) set(ref(db, 'users/' + currentUserId + '/transactions'), transactions);
-                renderTxList(); calculatePortfolio();
             } 
         };
 
         function renderTxList() {
             const container = document.getElementById('tx-list-container');
-            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">PURCHASE HISTORY (Latest Top)</div>';
+            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">HISTORY (Latest Top)</div>';
             [...transactions].sort((a,b) => b.id - a.id).forEach(t => {
                 const total = (t.shares * t.price).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
                 container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:10px; padding:12px; background:#f9f9f9; border-radius:15px; text-align:left;">
-                <div style="flex:1;"><b style="color:#000; font-size:13px;">$${total}</b><br><small style="color:#888;">${t.shares.toFixed(3)} shares @ $${t.price}</small></div>
-                <div style="text-align:right;"><small style="color:#bbb; font-weight:700;">${t.date}</small><br><span onclick="deleteTx(${t.id})" style="color:#ff3b30; cursor:pointer; font-weight:800; font-size:10px;">DELETE</span></div></div>`;
+                <div style="flex:1;"><b style="font-size:13px;">$${total}</b><br><small style="color:#888;">${t.shares.toFixed(3)} shares @ $${t.price}</small></div>
+                <div style="text-align:right;">
+                    <small style="color:#bbb; font-weight:700;">${t.date}</small><br>
+                    <div style="margin-top:4px;">
+                        <span onclick="editTx(${t.id})" style="color:#007aff; cursor:pointer; font-weight:800; font-size:10px; margin-right:8px;">EDIT</span>
+                        <span onclick="deleteTx(${t.id})" style="color:#ff3b30; cursor:pointer; font-weight:800; font-size:10px;">DEL</span>
+                    </div>
+                </div></div>`;
             });
         }
 
@@ -273,19 +290,15 @@
         }
 
         async function getVOOHistory() {
-            // 固定顯示 5D
             const to = Math.floor(Date.now() / 1000);
-            let from = to - (5 * 86400 * 3); 
-            let res = '60';
-            
+            let from = to - (5 * 86400 * 3), res = '60';
             try {
                 const response = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${res}&from=${from}&to=${to}&token=${API_KEY}`);
                 const data = await response.json();
-                if (data.s === "ok" && data.c && data.c.length > 0) {
-                    document.getElementById('api-status').innerText = "Live";
+                if (data.s === "ok" && data.c) {
                     const labels = data.t.slice(-40).map(ts => {
                         const d = new Date(ts * 1000);
-                        return `${d.getMonth()+1}/${d.getDate()}`; // M/D 格式
+                        return `${d.getMonth()+1}/${d.getDate()}`;
                     });
                     renderTrendChart(data.c.slice(-40), labels);
                 } else { throw new Error(); }
@@ -303,7 +316,7 @@
         }
 
         function renderTrendChart(prices, labels) {
-            if (trendChart) trendChart.destroy(); // 強制銷毀舊圖表
+            if (trendChart) trendChart.destroy();
             const ctx = document.getElementById('trendChart').getContext('2d');
             const isUp = prices[prices.length-1] >= prices[0];
             trendChart = new Chart(ctx, { 
@@ -360,7 +373,17 @@
         window.toggleModal = () => {
             const m = document.getElementById('input-modal');
             m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-            if(m.style.display === 'flex') document.getElementById('tx-date').valueAsDate = new Date();
+            if(m.style.display === 'flex') {
+                if (!editingTxId) {
+                    document.getElementById('modal-title').innerText = "New Purchase";
+                    document.getElementById('save-tx-btn').innerText = "Save Record";
+                    document.getElementById('tx-date').valueAsDate = new Date();
+                    document.getElementById('tx-price').value = "";
+                    document.getElementById('tx-total-amt').value = "";
+                }
+            } else {
+                editingTxId = null; // 關閉時重設編輯狀態
+            }
         };
 
         function initApp() {
