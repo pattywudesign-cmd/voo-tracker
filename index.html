@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VOO Cat Tracker - Final Robust Version</title>
+    <title>VOO Cat Tracker - Pixel Perfect</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
@@ -18,7 +18,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; 
             background-color: #f8fafb; color: var(--text-black);
             text-align: center; padding: 10px; margin: 0;
-            transition: background-color 0.4s ease;
         }
         
         .card {
@@ -28,81 +27,82 @@
             position: relative; box-sizing: border-box;
         }
 
-        .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .title-top { font-size: 11px; color: #888; font-weight: 800; letter-spacing: 1.5px; }
+        /* 核心修復：標題絕對置中，按鈕絕對靠右 */
+        .header-controls { 
+            display: flex; align-items: center; justify-content: center; 
+            position: relative; height: 36px; margin-bottom: 5px; 
+        }
+        .title-top { 
+            position: absolute; left: 50%; transform: translateX(-50%);
+            font-size: 10px; color: #888; font-weight: 800; 
+            letter-spacing: 1.2px; text-transform: uppercase; white-space: nowrap;
+        }
+        #auth-container { 
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%); 
+            display: flex; align-items: center; 
+        }
 
-        /* 統一按鈕樣式 */
         .ctrl-btn {
-            background: #f5f5f5; border: none; border-radius: 12px;
-            padding: 8px 12px; cursor: pointer; font-size: 13px; 
+            background: #f5f5f5; border: none; border-radius: 10px;
+            padding: 6px 12px; cursor: pointer; font-size: 12px; 
             font-weight: 700; color: var(--text-black); transition: 0.2s;
-            display: flex; align-items: center; justify-content: center;
         }
         .ctrl-btn:hover { background: #eeeeee; }
 
-        #user-profile { display: none; align-items: center; cursor: pointer; }
-        #user-pic { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
-        /* 貓咪下移 35px */
-        #cat-wrapper { 
-            height: 100px; display: flex; align-items: center; justify-content: center; 
-            margin-top: 35px; margin-bottom: 10px; animation: cat-glow 3s infinite ease-in-out; 
+        .portfolio-empty {
+            background: #f9f9f9; padding: 22px; border-radius: 20px;
+            font-size: 12px; color: #666; font-weight: 600; cursor: pointer;
+            border: 2px dashed #eee; transition: 0.2s; text-align: center;
         }
+
+        #cat-wrapper { height: 100px; display: flex; align-items: center; justify-content: center; margin-top: 35px; margin-bottom: 10px; }
         #cat-container { width: 90px; height: 90px; }
         #cat-container svg { width: 100%; height: 100%; display: block; }
 
-        .odometer {
-            display: flex; justify-content: center; align-items: center;
-            font-weight: 800; color: var(--text-black) !important;
-            font-size: 50px; height: var(--digit-h); overflow: hidden;
-        }
-        .symbol { font-size: 26px; color: var(--text-black) !important; margin-right: 4px; font-weight: 800; }
+        .odometer { display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 50px; height: var(--digit-h); }
+        .symbol { font-size: 26px; margin-right: 4px; font-weight: 800; }
         .digit-container { position: relative; width: 0.62em; height: var(--digit-h); overflow: hidden; }
         .digit-strip { position: absolute; width: 100%; transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1); }
-        .digit-strip span { display: block; height: var(--digit-h); line-height: var(--digit-h); text-align: center; color: var(--text-black) !important; }
-        .decimal-point { width: 0.25em; line-height: var(--digit-h); color: var(--text-black) !important; font-weight: 800; }
+        .digit-strip span { display: block; height: var(--digit-h); line-height: var(--digit-h); }
 
-        .portfolio-summary { display: flex; justify-content: space-around; border-top: 1px solid #f0f0f0; margin-top: 20px; padding-top: 20px; }
-        .port-item { text-align: left; }
-        .port-label { font-size: 10px; color: #888; font-weight: 700; margin-bottom: 4px; }
-        .port-val { font-size: 15px; font-weight: 800; color: var(--text-black); }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .port-label { font-size: 9px; color: #888; font-weight: 700; margin-bottom: 3px; text-align: left; }
+        .port-val { font-size: 13px; font-weight: 800; text-align: left; }
 
-        .section-title { font-size: 13px; font-weight: 800; color: #000; text-align: left; margin-bottom: 15px; }
-        #holdings-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 20px; text-align: left; font-size: 10px; }
-        .hold-item { display: flex; align-items: center; gap: 6px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .section-title { font-size: 13px; font-weight: 800; color: #000; text-align: left; margin-bottom: 12px; }
+
+        #success-popup {
+            display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #000; color: #fff; padding: 16px 24px; border-radius: 100px;
+            font-size: 12px; font-weight: 700; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: opacity 0.4s;
+        }
 
         #input-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center;
         }
-        .modal-box { background: white; padding: 25px; border-radius: 28px; width: 85%; max-width: 320px; max-height: 80vh; overflow-y: auto; text-align: left; }
-
+        .modal-box { background: white; padding: 25px; border-radius: 28px; width: 85%; max-width: 320px; text-align: left; }
         .up-text { color: var(--up-accent) !important; }
         .down-text { color: var(--down-accent) !important; }
-
-        @keyframes cat-glow { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
     </style>
 </head>
 <body>
 
+    <div id="success-popup">Login successful! Portfolio enabled.</div>
+
     <div class="card">
         <div class="header-controls">
             <div class="title-top">VOO MARKET TRACKER</div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <div id="g_id_onload"
-                     data-client_id="45225026048-ka4ujv4omrve3o3840f7j5vklcit4vld.apps.googleusercontent.com"
-                     data-callback="handleCredentialResponse"
-                     data-auto_prompt="false">
-                </div>
-                
-                <button id="login-btn" class="ctrl-btn" onclick="triggerLogin()">Login</button>
-                
-                <div id="user-profile" onclick="logout()" title="Logout">
-                    <img id="user-pic" src="" alt="User">
-                </div>
-                
-                <button class="ctrl-btn" onclick="toggleModal()">💰</button>
+            
+            <div id="auth-container">
+                <button id="auth-btn" class="ctrl-btn" onclick="handleAuthClick()">Login</button>
+            </div>
+
+            <div id="g_id_onload"
+                 data-client_id="45225026048-ka4ujv4omrve3o3840f7j5vklcit4vld.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
             </div>
         </div>
         
@@ -116,50 +116,60 @@
             <span class="symbol">$</span>
             <div id="digits-box" style="display:flex;"></div>
         </div>
+        <div id="change-display"><span id="change-text" style="font-weight: 800; font-size: 14px;">---</span></div>
+    </div>
 
-        <div id="change-display">
-            <span id="change-text" style="font-weight: 800;">---</span>
+    <div class="card" id="portfolio-section">
+        <div id="portfolio-logged-out" onclick="handleAuthClick()" class="portfolio-empty">
+            Sign in to record your purchase price and track performance.
         </div>
-
-        <div class="portfolio-summary">
-            <div class="port-item"><div class="port-label">EST. VALUE</div><div class="port-val" id="total-val">$0.00</div></div>
-            <div class="port-item"><div class="port-label">TOTAL P/L</div><div class="port-val" id="profit-val">--</div></div>
-            <div class="port-item"><div class="port-label">RETURN</div><div class="port-val" id="return-pct">--%</div></div>
+        
+        <div id="portfolio-logged-in" style="display:none; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span class="section-title" style="margin:0">Portfolio Tracking</span>
+                <button class="ctrl-btn" onclick="toggleModal()" style="background:#000; color:#fff;">+ Add Record</button>
+            </div>
+            <div class="summary-grid">
+                <div class="port-item"><div class="port-label">EST. VALUE</div><div class="port-val" id="total-val">$0.00</div></div>
+                <div class="port-item"><div class="port-label">TOTAL P/L</div><div class="port-val" id="profit-val">--</div></div>
+                <div class="port-item"><div class="port-label">RETURN</div><div class="port-val" id="return-pct">--%</div></div>
+            </div>
         </div>
     </div>
 
     <div class="card">
-        <div class="header-controls">
-            <div class="section-title">Performance <span id="api-status" style="font-size:9px; color:#bbb; font-weight:normal;"></span></div>
-            <select id="timeframe" onchange="getVOOHistory()">
+        <div class="header-controls" style="justify-content: space-between;">
+            <div class="section-title" style="margin:0">Performance <span id="api-status" style="font-size:9px; color:#bbb; font-weight:normal;"></span></div>
+            <select id="timeframe" onchange="getVOOHistory()" style="border:none; background:#f5f5f5; border-radius:8px; padding:2px 6px; font-weight:700; font-size:11px;">
                 <option value="1">1D</option>
                 <option value="5" selected>5D</option>
                 <option value="30">1M</option>
                 <option value="365">1Y</option>
             </select>
         </div>
-        <div style="height: 180px;"><canvas id="trendChart"></canvas></div>
+        <div style="height: 180px; margin-top: 15px;"><canvas id="trendChart"></canvas></div>
     </div>
 
     <div class="card">
-        <div class="section-title" style="margin-bottom:20px;">Top 20 Holdings</div>
-        <div style="width: 150px; margin: 0 auto;"><canvas id="holdingsChart"></canvas></div>
-        <div id="holdings-list"></div>
+        <div class="section-title">Top 20 Holdings</div>
+        <div style="width: 130px; margin: 0 auto;"><canvas id="holdingsChart"></canvas></div>
+        <div id="holdings-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 15px; text-align: left; font-size: 9px;"></div>
     </div>
 
     <div id="input-modal">
         <div class="modal-box">
-            <h3 style="margin:0 0 20px 0;">Portfolio Editor</h3>
+            <h3 style="margin:0 0 20px 0; font-size:16px;">Add Record</h3>
             <div style="background:#f9f9f9; padding:18px; border-radius:20px; margin-bottom:15px;">
-                <label style="font-size:11px; font-weight:800;">DATE</label>
-                <input type="date" id="tx-date" style="width:100%; margin:6px 0 12px; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
-                <label style="font-size:11px; font-weight:800;">COST ($)</label>
-                <input type="number" id="tx-price" placeholder="613.50" style="width:100%; margin:6px 0 12px; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
-                <label style="font-size:11px; font-weight:800;">SHARES</label>
-                <input type="number" id="tx-shares" placeholder="10" style="width:100%; margin:6px 0 18px; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
-                <button onclick="addTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:14px; border-radius:14px; font-weight:800; cursor:pointer;">Save Record</button>
+                <label style="font-size:10px; font-weight:800;">DATE</label>
+                <input type="date" id="tx-date" style="width:100%; margin:4px 0 10px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
+                <label style="font-size:10px; font-weight:800;">PRICE ($)</label>
+                <input type="number" id="tx-price" placeholder="634.02" style="width:100%; margin:4px 0 10px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
+                <label style="font-size:10px; font-weight:800;">SHARES</label>
+                <input type="number" id="tx-shares" placeholder="10" style="width:100%; margin:4px 0 14px; padding:8px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box;">
+                <button onclick="addTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Save to Cloud</button>
             </div>
             <div id="tx-list-container"></div>
+            <button onclick="toggleModal()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:12px;">Close</button>
         </div>
     </div>
 
@@ -167,16 +177,14 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // 真實 Firebase Config
         const firebaseConfig = {
-          apiKey: "AIzaSyBG0O6iJMyWTHiQ6yBZlzFEwxnZXl39vow",
-          authDomain: "voo-tracker-8a51a.firebaseapp.com",
-          databaseURL: "https://voo-tracker-8a51a-default-rtdb.firebaseio.com",
-          projectId: "voo-tracker-8a51a",
-          storageBucket: "voo-tracker-8a51a.firebasestorage.app",
-          messagingSenderId: "947007261548",
-          appId: "1:947007261548:web:1ef834f12313e55bc00149",
-          measurementId: "G-JHGZWJQTLZ"
+            apiKey: "AIzaSyBG0O6iJMyWTHiQ6yBZlzFEwxnZXl39vow",
+            authDomain: "voo-tracker-8a51a.firebaseapp.com",
+            databaseURL: "https://voo-tracker-8a51a-default-rtdb.firebaseio.com",
+            projectId: "voo-tracker-8a51a",
+            storageBucket: "voo-tracker-8a51a.firebasestorage.app",
+            messagingSenderId: "947007261548",
+            appId: "1:947007261548:web:1ef834f12313e55bc00149"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -185,14 +193,22 @@
         const symbol = 'VOO';
         let lastPrice = 0, trendChart, transactions = [], currentUserId = null;
 
-        window.triggerLogin = () => google.accounts.id.prompt();
+        window.handleAuthClick = () => {
+            if (currentUserId) { if(confirm("Logout?")) location.reload(); }
+            else { google.accounts.id.prompt(); }
+        };
 
         window.handleCredentialResponse = (response) => {
             const payload = JSON.parse(window.atob(response.credential.split('.')[1]));
             currentUserId = payload.sub;
-            document.getElementById("login-btn").style.display = "none";
-            document.getElementById("user-profile").style.display = "flex";
-            document.getElementById("user-pic").src = payload.picture;
+            const popup = document.getElementById("success-popup");
+            popup.style.display = "block";
+            setTimeout(() => { popup.style.opacity = "0"; setTimeout(() => popup.style.display="none", 500); }, 3500);
+
+            document.getElementById("auth-btn").innerText = "Logout";
+            document.getElementById("portfolio-logged-out").style.display = "none";
+            document.getElementById("portfolio-logged-in").style.display = "block";
+            
             onValue(ref(db, 'users/' + currentUserId + '/transactions'), (snap) => {
                 transactions = snap.val() || [];
                 renderTxList(); calculatePortfolio();
@@ -200,7 +216,6 @@
         };
 
         window.saveAndRefresh = () => {
-            localStorage.setItem('voo_backup', JSON.stringify(transactions));
             if (currentUserId) set(ref(db, 'users/' + currentUserId + '/transactions'), transactions);
             renderTxList(); calculatePortfolio();
         };
@@ -216,11 +231,11 @@
 
         function renderTxList() {
             const container = document.getElementById('tx-list-container');
-            container.innerHTML = transactions.length === 0 ? '<div style="color:#aaa; font-size:12px; text-align:center;">No records</div>' : '';
-            [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-                container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-bottom:10px; border-bottom:1px dashed #eee; padding-bottom:5px;">
-                <div><b>${t.shares} shares @ $${t.price}</b><br><small>${t.date}</small></div>
-                <button onclick="deleteTx(${t.id})" style="border:none; color:red; background:none; cursor:pointer;">Del</button></div>`;
+            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:8px;">RECENT LOGS</div>';
+            [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 2).forEach(t => {
+                container.innerHTML += `<div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:6px; color:#666;">
+                <span>${t.date} | ${t.shares} @ $${t.price}</span>
+                <span onclick="deleteTx(${t.id})" style="color:red; cursor:pointer;">Del</span></div>`;
             });
         }
 
@@ -240,26 +255,31 @@
         async function getVOOHistory() {
             const tf = document.getElementById('timeframe').value;
             const to = Math.floor(Date.now() / 1000);
-            // 修正：增加回溯天數以應對週末休市
-            let from = to - (parseInt(tf) * 86400 * 3); 
+            let from = to - (parseInt(tf) * 86400 * 3.5); 
             let res = (tf == '5') ? '60' : (tf == '1' ? '15' : 'D');
-            
             try {
                 const response = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${res}&from=${from}&to=${to}&token=${API_KEY}`);
                 const data = await response.json();
-                if (data.s === "ok" && data.c && data.c.length > 0) {
+                if (data.s === "ok" && data.c) {
                     document.getElementById('api-status').innerText = "Live";
                     const count = tf == '5' ? 40 : (tf == '1' ? 26 : data.c.length);
-                    updateTrendUI(data.c.slice(-count), data.t.slice(-count).map(ts => {
+                    const labels = data.t.slice(-count).map(ts => {
                         const d = new Date(ts * 1000);
-                        return tf === '1' || tf === '5' ? `${d.getHours()}:00` : `${d.getMonth()+1}/${d.getDate()}`;
-                    }));
+                        return `${d.getMonth()+1}/${d.getDate()}`;
+                    });
+                    updateTrendUI(data.c.slice(-count), labels);
                 } else { throw new Error(); }
             } catch (e) {
+                // 修復：模擬數據時產生真實日期標籤
                 document.getElementById('api-status').innerText = "Market Closed";
-                const base = lastPrice || 634, prices = [];
-                for(let i=0; i<10; i++) prices.push(base - (Math.random()*15 - 7));
-                prices.push(base); updateTrendUI(prices, Array(11).fill("•"));
+                const base = lastPrice || 634, prices = [], labels = [];
+                const now = new Date();
+                for(let i=7; i>=0; i--) {
+                    const d = new Date(); d.setDate(now.getDate() - i);
+                    labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+                    prices.push(base - (Math.random()*12 - 6));
+                }
+                updateTrendUI(prices, labels);
             }
         }
 
@@ -269,9 +289,8 @@
             trendChart.data.datasets[0].data = prices;
             trendChart.data.datasets[0].borderColor = isUp ? '#00c805' : '#ff3b30';
             trendChart.data.datasets[0].backgroundColor = isUp ? 'rgba(0, 200, 5, 0.05)' : 'rgba(255, 59, 48, 0.05)';
-            // 重要：修正 Y 軸自動縮放，避免 $0-$1
-            trendChart.options.scales.y.min = Math.min(...prices) * 0.99;
-            trendChart.options.scales.y.max = Math.max(...prices) * 1.01;
+            trendChart.options.scales.y.min = Math.min(...prices) * 0.998;
+            trendChart.options.scales.y.max = Math.max(...prices) * 1.002;
             trendChart.update();
         }
 
@@ -283,12 +302,10 @@
                 lastPrice = data.c;
                 updateOdometer(data.c.toFixed(2));
                 calculatePortfolio();
-                
                 if (trendChart && trendChart.data.datasets[0].data.length > 0) {
                     trendChart.data.datasets[0].data[trendChart.data.datasets[0].data.length - 1] = lastPrice;
                     trendChart.update('none'); 
                 }
-
                 const isUp = data.d >= 0;
                 document.getElementById('cat-container').innerHTML = `<svg viewBox="0 0 100 100" width="100%" height="100%"><text x="50" y="30" font-size="30" text-anchor="middle" fill="${isUp?'#00c805':'#ff3b30'}" font-weight="bold">${isUp?'▲':'▼'}</text><text x="50" y="75" font-size="50" text-anchor="middle">${isUp?'😺':'😿'}</text></svg>`;
                 document.body.style.backgroundColor = isUp ? "#f2faf5" : "#fef2f2";
@@ -318,13 +335,25 @@
         };
 
         function initApp() {
-            const saved = localStorage.getItem('voo_backup');
+            const saved = localStorage.getItem('voo_final_backup');
             if(saved) { transactions = JSON.parse(saved); renderTxList(); }
             const colors = ['#84a59d', '#a8dadc', '#9eb3c2', '#b7b7a4', '#ddbea9', '#cb997e', '#b5838d', '#e5989b', '#ffb5a7', '#fcd5ce', '#f8ad9d', '#f4978e', '#bc4749', '#6b705c', '#a5a58d', '#b7b7a4', '#ffe8d6', '#ddbea9', '#cb997e', '#9b2226'];
             const top20 = { labels: ["NVIDIA", "Apple", "Microsoft", "Amazon", "Alphabet A", "Alphabet C", "Meta", "Broadcom", "Tesla", "Berkshire", "Walmart", "Eli Lilly", "JPMorgan", "ExxonMobil", "Visa", "J&J", "Micron", "Mastercard", "Oracle", "Costco"], values: [7.32, 6.14, 4.72, 3.60, 3.11, 2.91, 2.65, 2.55, 2.46, 1.71, 1.57, 1.52, 1.34, 1.00, 0.99, 0.93, 0.76, 0.75, 0.70, 0.70] };
             new Chart(document.getElementById('holdingsChart').getContext('2d'), { type: 'doughnut', data: { labels: top20.labels, datasets: [{ data: top20.values, backgroundColor: colors, borderWidth: 1, borderColor: '#fff' }] }, options: { cutout: '70%', plugins: { legend: { display: false } } } });
-            top20.labels.forEach((l, i) => document.getElementById('holdings-list').innerHTML += `<div class="hold-item"><div class="dot" style="background:${colors[i]}"></div><div style="flex:1; font-weight:800;">${l} <b style="float:right">${top20.values[i]}%</b></div></div>`);
-            trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderWidth: 3, pointRadius: 0, tension: 0.2, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, position: 'right', ticks: { color: '#000', font: { weight: 'bold' } } } } } });
+            top20.labels.forEach((l, i) => document.getElementById('holdings-list').innerHTML += `<div class="hold-item"><div class="dot" style="background:${colors[i]}"></div><div style="flex:1;">${l} <b style="float:right">${top20.values[i]}%</b></div></div>`);
+            
+            trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), { 
+                type: 'line', 
+                data: { labels: [], datasets: [{ data: [], borderWidth: 3, pointRadius: 0, tension: 0.2, fill: true }] }, 
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { display: true, ticks: { color: '#bbb', font: { size: 9, weight: '600' } }, grid: { display: false } }, 
+                        y: { display: true, position: 'right', ticks: { color: '#000', font: { weight: '800', size: 10 } } } 
+                    } 
+                } 
+            });
             updatePrice(); setInterval(updatePrice, 15000); getVOOHistory();
         }
         initApp();
