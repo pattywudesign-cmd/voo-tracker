@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VOO Cat Tracker - Edit & Sync Pro</title>
+    <title>VOO Cat Tracker - UX Professional</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
@@ -27,7 +27,7 @@
             position: relative; box-sizing: border-box;
         }
 
-        /* 標題置中 + 按鈕靠右 */
+        /* 標題置中 + 按鈕絕對靠右 */
         .header-controls { 
             display: flex; align-items: center; justify-content: center; 
             position: relative; height: 40px; margin-bottom: 5px; 
@@ -41,8 +41,8 @@
 
         .ctrl-btn {
             background: #f5f5f5; border: none; border-radius: 10px;
-            padding: 6px 12px; cursor: pointer; font-size: 12px; 
-            font-weight: 700; color: var(--text-black); transition: 0.2s;
+            padding: 6px 12px; cursor: pointer; font-size: 11px; 
+            font-weight: 800; color: var(--text-black); transition: 0.2s;
         }
         .ctrl-btn:hover { background: #eeeeee; }
 
@@ -66,8 +66,13 @@
         .port-label { font-size: 9px; color: #888; font-weight: 700; margin-bottom: 3px; text-align: left; }
         .port-val { font-size: 13px; font-weight: 800; text-align: left; }
 
-        /* 紀錄清單：最新在上 + 可滑動區域 */
-        #tx-list-container { max-height: 180px; overflow-y: auto; margin-top: 10px; padding-right: 5px; scrollbar-width: thin; }
+        /* 歷史紀錄清單樣式 */
+        #history-panel { display: none; margin-top: 20px; border-top: 1px solid #f0f0f0; padding-top: 15px; }
+        #tx-list-container { max-height: 200px; overflow-y: auto; padding-right: 5px; scrollbar-width: thin; }
+
+        #holdings-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 15px; text-align: left; font-size: 9px; }
+        .hold-item { display: flex; align-items: center; gap: 6px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
 
         #success-popup {
             display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -87,7 +92,7 @@
 </head>
 <body>
 
-    <div id="success-popup">Sync complete. Data secured.</div>
+    <div id="success-popup">Sync active. Data secured.</div>
 
     <div class="card">
         <div class="header-controls">
@@ -123,12 +128,20 @@
         <div id="portfolio-logged-in" style="display:none; text-align:left;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <span class="section-title" style="font-size:13px; font-weight:800; margin:0">Portfolio Tracking</span>
-                <button class="ctrl-btn" onclick="toggleModal()" style="background:#000; color:#fff;">+ Add Record</button>
+                <div style="display:flex; gap:6px;">
+                    <button class="ctrl-btn" onclick="toggleHistory()" style="background:#eee;">History</button>
+                    <button class="ctrl-btn" onclick="openAddModal()" style="background:#000; color:#fff;">+ Add Record</button>
+                </div>
             </div>
             <div class="summary-grid">
                 <div class="port-item"><div class="port-label">EST. VALUE</div><div class="port-val" id="total-val">$0.00</div></div>
                 <div class="port-item"><div class="port-label">TOTAL P/L</div><div class="port-val" id="profit-val">--</div></div>
                 <div class="port-item"><div class="port-label">RETURN</div><div class="port-val" id="return-pct">--%</div></div>
+            </div>
+
+            <div id="history-panel">
+                <div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">PURCHASE HISTORY</div>
+                <div id="tx-list-container"></div>
             </div>
         </div>
     </div>
@@ -143,7 +156,7 @@
     <div class="card">
         <div class="section-title" style="font-size:13px; font-weight:800; margin-bottom:12px;">Top 20 Holdings</div>
         <div style="width: 130px; margin: 0 auto;"><canvas id="holdingsChart"></canvas></div>
-        <div id="holdings-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 15px; text-align: left; font-size: 9px;"></div>
+        <div id="holdings-list"></div>
     </div>
 
     <div id="input-modal">
@@ -161,8 +174,7 @@
                 
                 <button id="save-tx-btn" onclick="saveTransaction()" style="width:100%; background:#000; color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800;">Save Record</button>
             </div>
-            <div id="tx-list-container"></div>
-            <button onclick="toggleModal()" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:12px;">Close</button>
+            <button onclick="closeModal()" style="width:100%; background:none; border:none; color:#999; margin-top:5px; cursor:pointer; font-size:12px;">Cancel</button>
         </div>
     </div>
 
@@ -170,6 +182,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyBG0O6iJMyWTHiQ6yBZlzFEwxnZXl39vow",
             authDomain: "voo-tracker-8a51a.firebaseapp.com",
@@ -186,21 +199,22 @@
         const symbol = 'VOO';
         let lastPrice = 0, trendChart = null, transactions = [], currentUserId = null, isDataReady = false, editingTxId = null;
 
+        // 登入持久化恢復
         window.onload = () => {
-            const saved = localStorage.getItem('voo_user_persistence_id');
+            const saved = localStorage.getItem('voo_patty_auth');
             if (saved) { currentUserId = saved; showLoginUI(); connectFirebase(); }
             initApp();
         };
 
         window.handleAuthClick = () => {
-            if (currentUserId) { if(confirm("Logout?")) { localStorage.removeItem('voo_user_persistence_id'); location.reload(); } }
+            if (currentUserId) { if(confirm("Logout?")) { localStorage.removeItem('voo_patty_auth'); location.reload(); } }
             else { google.accounts.id.prompt(); }
         };
 
         window.handleCredentialResponse = (response) => {
             const payload = JSON.parse(window.atob(response.credential.split('.')[1]));
             currentUserId = payload.sub;
-            localStorage.setItem('voo_user_persistence_id', currentUserId);
+            localStorage.setItem('voo_patty_auth', currentUserId);
             showLoginUI(); connectFirebase();
         };
 
@@ -218,24 +232,32 @@
             });
         }
 
-        // 智慧編輯與儲存邏輯
+        // 交易操作邏輯
+        window.openAddModal = () => {
+            editingTxId = null;
+            document.getElementById('modal-title').innerText = "New Purchase";
+            document.getElementById('save-tx-btn').innerText = "Save Record";
+            document.getElementById('tx-date').valueAsDate = new Date();
+            document.getElementById('tx-price').value = "";
+            document.getElementById('tx-total-amt').value = "";
+            document.getElementById('input-modal').style.display = 'flex';
+        };
+
         window.saveTransaction = () => {
-            if (!isDataReady) { alert("Syncing data..."); return; }
+            if (!isDataReady) return;
             const d = document.getElementById('tx-date').value, p = parseFloat(document.getElementById('tx-price').value), amt = parseFloat(document.getElementById('tx-total-amt').value);
             if(!d || isNaN(p) || isNaN(amt)) return;
 
             const entryData = { id: editingTxId || Date.now(), date: d, price: p, shares: amt / p };
 
             if (editingTxId) {
-                // 更新模式
                 transactions = transactions.map(t => t.id === editingTxId ? entryData : t);
             } else {
-                // 新增模式
                 transactions.push(entryData);
             }
             
             if (currentUserId) set(ref(db, 'users/' + currentUserId + '/transactions'), transactions);
-            toggleModal(); // 存完關閉
+            closeModal();
             renderTxList(); calculatePortfolio();
         };
 
@@ -248,7 +270,6 @@
             document.getElementById('tx-date').value = tx.date;
             document.getElementById('tx-price').value = tx.price;
             document.getElementById('tx-total-amt').value = (tx.price * tx.shares).toFixed(2);
-            // 由於 toggleModal 會檢查當前是否開啟，我們直接設定狀態
             document.getElementById('input-modal').style.display = 'flex';
         };
 
@@ -259,13 +280,20 @@
             } 
         };
 
+        window.toggleHistory = () => {
+            const p = document.getElementById('history-panel');
+            p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+        };
+
+        window.closeModal = () => document.getElementById('input-modal').style.display = 'none';
+
         function renderTxList() {
             const container = document.getElementById('tx-list-container');
-            container.innerHTML = transactions.length === 0 ? '' : '<div style="font-size:10px; font-weight:800; margin-bottom:10px; color:#aaa;">HISTORY (Latest Top)</div>';
+            container.innerHTML = transactions.length === 0 ? '<div style="font-size:11px; color:#ccc; text-align:center;">No records yet</div>' : '';
             [...transactions].sort((a,b) => b.id - a.id).forEach(t => {
                 const total = (t.shares * t.price).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
                 container.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:10px; padding:12px; background:#f9f9f9; border-radius:15px; text-align:left;">
-                <div style="flex:1;"><b style="font-size:13px;">$${total}</b><br><small style="color:#888;">${t.shares.toFixed(3)} shares @ $${t.price}</small></div>
+                <div style="flex:1;"><b style="font-size:12px;">$${total}</b><br><small style="color:#888;">${t.shares.toFixed(3)} shares @ $${t.price}</small></div>
                 <div style="text-align:right;">
                     <small style="color:#bbb; font-weight:700;">${t.date}</small><br>
                     <div style="margin-top:4px;">
@@ -298,7 +326,7 @@
                 if (data.s === "ok" && data.c) {
                     const labels = data.t.slice(-40).map(ts => {
                         const d = new Date(ts * 1000);
-                        return `${d.getMonth()+1}/${d.getDate()}`;
+                        return `${d.getMonth()+1}/${d.getDate()}`; // M/D 格式
                     });
                     renderTrendChart(data.c.slice(-40), labels);
                 } else { throw new Error(); }
@@ -369,22 +397,6 @@
             const strips = document.querySelectorAll('.digit-strip'), digits = [...p].filter(c => c !== '.');
             digits.forEach((d, i) => { if(strips[i]) strips[i].style.transform = `translateY(${-(parseInt(d) * 80)}px)`; });
         }
-
-        window.toggleModal = () => {
-            const m = document.getElementById('input-modal');
-            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-            if(m.style.display === 'flex') {
-                if (!editingTxId) {
-                    document.getElementById('modal-title').innerText = "New Purchase";
-                    document.getElementById('save-tx-btn').innerText = "Save Record";
-                    document.getElementById('tx-date').valueAsDate = new Date();
-                    document.getElementById('tx-price').value = "";
-                    document.getElementById('tx-total-amt').value = "";
-                }
-            } else {
-                editingTxId = null; // 關閉時重設編輯狀態
-            }
-        };
 
         function initApp() {
             const colors = ['#84a59d', '#a8dadc', '#9eb3c2', '#b7b7a4', '#ddbea9', '#cb997e', '#b5838d', '#e5989b', '#ffb5a7', '#fcd5ce', '#f8ad9d', '#f4978e', '#bc4749', '#6b705c', '#a5a58d', '#b7b7a4', '#ffe8d6', '#ddbea9', '#cb997e', '#9b2226'];
